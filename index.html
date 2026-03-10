@@ -7,39 +7,45 @@
     <script src="https://accounts.google.com/gsi/client" async defer></script>
     <style>
         body { background: #000; color: #0f0; font-family: 'Courier New', monospace; padding: 20px; display: flex; justify-content: center; overflow-x: hidden; }
-        .card { background: #111; border: 2px solid #0f0; padding: 25px; border-radius: 12px; width: 100%; max-width: 600px; box-shadow: 0 0 30px rgba(0,255,0,0.1); position: relative; }
+        .card { background: #111; border: 2px solid #0f0; padding: 25px; border-radius: 12px; width: 100%; max-width: 600px; box-shadow: 0 0 30px rgba(0,255,0,0.1); position: relative; z-index: 10; }
         
-        /* Admin Settings Icon */
-        .settings-icon { position: absolute; top: 15px; right: 15px; font-size: 24px; cursor: pointer; z-index: 5; }
+        /* Admin Settings Icon - Always on top */
+        .settings-icon { position: absolute; top: 15px; right: 15px; font-size: 24px; cursor: pointer; z-index: 1001; color: #0f0; }
         
-        /* Offline Screen */
-        #offlineOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: red; z-index: 100; align-items: center; justify-content: center; font-size: 30px; font-weight: bold; text-align: center; }
+        /* Offline Screen - Sits just below the settings icon */
+        #offlineOverlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; color: red; z-index: 1000; align-items: center; justify-content: center; font-size: 30px; font-weight: bold; text-align: center; flex-direction: column; }
 
         h2 { text-align: center; margin-top: 0; }
         input, textarea { width: 100%; padding: 12px; margin: 10px 0; background: #000; border: 1px solid #333; color: #0f0; border-radius: 5px; outline: none; }
         button { width: 100%; padding: 15px; background: #0f0; border: none; color: #000; font-weight: bold; cursor: pointer; border-radius: 5px; margin: 10px 0; }
         
         /* Admin Modal */
-        .modal { display: none; position: fixed; z-index: 150; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); align-items: center; justify-content: center; }
-        .modal-content { background: #111; border: 2px solid #0f0; padding: 20px; border-radius: 10px; width: 90%; max-width: 500px; color: #fff; }
-        .user-list { max-height: 250px; overflow-y: auto; background: #000; padding: 10px; border: 1px solid #333; font-size: 11px; margin-top: 10px; }
-        .user-item { display: flex; justify-content: space-between; border-bottom: 1px solid #222; padding: 8px 0; align-items: center; }
-        .ban-btn { background: #440000; color: #ff0000; padding: 5px; cursor: pointer; border: 1px solid red; border-radius: 3px; }
+        .modal { display: none; position: fixed; z-index: 2000; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); align-items: center; justify-content: center; }
+        .modal-content { background: #111; border: 2px solid #0f0; padding: 20px; border-radius: 10px; width: 95%; max-width: 600px; color: #fff; }
+        .user-list { max-height: 300px; overflow-y: auto; background: #000; padding: 10px; border: 1px solid #333; font-size: 11px; margin-top: 10px; }
+        .user-item { border-bottom: 1px solid #222; padding: 10px 0; }
+        .user-row { display: flex; justify-content: space-between; align-items: center; }
+        .ban-btn { background: #440000; color: #ff0000; padding: 5px 10px; cursor: pointer; border: 1px solid red; border-radius: 3px; font-size: 10px; }
+        .log-time { color: #888; font-size: 9px; margin-top: 4px; }
 
         #mainUI { display: none; }
-        .loader-box { background: #050505; border: 1px dashed #0f0; padding: 15px; cursor: pointer; font-size: 11px; }
+        .loader-box { background: #050505; border: 1px dashed #0f0; padding: 15px; cursor: pointer; font-size: 11px; margin-top: 5px; }
     </style>
 </head>
 <body>
 
-    <div id="offlineOverlay">ERROR: SYSTEM OFFLINE<br><span style="font-size: 14px; color: #888;">Please contact an admin.</span></div>
+    <div class="settings-icon" onclick="openAdmin()">⚙️</div>
+
+    <div id="offlineOverlay">
+        ERROR: SYSTEM OFFLINE
+        <span style="font-size: 14px; color: #888; margin-top: 10px;">The administrator has disabled this tool.</span>
+    </div>
 
     <div class="card">
-        <div class="settings-icon" onclick="openAdmin()">⚙️</div>
         <h2>BEANZ SETTINGS GEN</h2>
 
         <div id="loginSection" style="text-align:center;">
-            <p style="color: #888;">Sign in with Gmail to use the generator</p>
+            <p style="color: #888;">Sign in with Gmail to continue</p>
             <div id="g_id_onload"
                  data-client_id="YOUR_GOOGLE_CLIENT_ID_HERE.apps.googleusercontent.com"
                  data-callback="handleCredentialResponse">
@@ -48,14 +54,14 @@
         </div>
 
         <div id="mainUI">
-            <p id="welcomeMsg" style="font-size: 12px; color: #0f0;"></p>
+            <p id="welcomeMsg" style="font-size: 11px; color: #0f0; text-align: center;"></p>
             <input type="text" id="webhook" placeholder="Paste Discord Webhook URL">
             <button onclick="generate()">GENERATE SETTINGS</button>
 
             <div id="outputArea" style="display:none;">
-                <p style="font-size: 11px; color: #888;">Copy this to Pastefy:</p>
-                <textarea id="finalSource" readonly></textarea>
-                <p style="font-size: 11px; color: #888;">Then put raw link here:</p>
+                <p style="font-size: 10px; color: #888; margin-bottom: 2px;">1. Copy this code to Pastefy:</p>
+                <textarea id="finalSource" readonly style="height: 100px; font-size: 10px;"></textarea>
+                <p style="font-size: 10px; color: #888; margin-top: 10px;">2. Your Loader (Click to Copy):</p>
                 <div class="loader-box" onclick="copyLoader()">loadstring(game:HttpGet('your pastefy raw link here'))()</div>
             </div>
         </div>
@@ -63,19 +69,19 @@
 
     <div id="adminModal" class="modal">
         <div class="modal-content">
-            <h3 style="color:#0f0;">ADMIN CONTROL</h3>
+            <h3 style="color:#0f0; margin-top: 0;">ADMIN PANEL</h3>
             <div id="authPanel">
                 <input type="password" id="adminPass" placeholder="Enter Code 2067">
-                <button onclick="checkAdmin()">LOGIN</button>
+                <button onclick="checkAdmin()">ACCESS SYSTEM</button>
             </div>
             <div id="controlPanel" style="display:none;">
-                <div style="background: #222; padding: 10px; margin-bottom: 10px;">
-                    <label>WEBSITE STATUS:</label>
-                    <button id="killSwitchBtn" onclick="toggleKillSwitch()" style="background: green; color: white;">ONLINE</button>
+                <div style="background: #222; padding: 15px; border-radius: 5px; margin-bottom: 15px;">
+                    <label style="font-size: 12px; font-weight: bold;">SITE POWER:</label>
+                    <button id="killSwitchBtn" onclick="toggleKillSwitch()" style="margin-top: 10px;"></button>
                 </div>
-                <p>Gmail User Database:</p>
+                <p style="font-size: 12px; border-bottom: 1px solid #333; padding-bottom: 5px;">User Database & Logs:</p>
                 <div class="user-list" id="userList"></div>
-                <button onclick="closeAdmin()">BACK</button>
+                <button onclick="closeAdmin()" style="background: #333; color: #fff;">EXIT ADMIN</button>
             </div>
         </div>
     </div>
@@ -83,10 +89,10 @@
     <script>
         let isOnline = localStorage.getItem('siteOnline') !== 'false';
         let bannedEmails = JSON.parse(localStorage.getItem('bannedEmails')) || [];
-        let loggedUsers = JSON.parse(localStorage.getItem('loggedUsers')) || [];
+        let userDatabase = JSON.parse(localStorage.getItem('userDatabase')) || {}; // Stores email: timestamp
         let currentUserEmail = "";
 
-        // Check Kill Switch on load
+        // Apply Kill Switch immediately
         if (!isOnline) { document.getElementById('offlineOverlay').style.display = 'flex'; }
 
         function handleCredentialResponse(response) {
@@ -94,26 +100,25 @@
             currentUserEmail = responsePayload.email;
 
             if (bannedEmails.includes(currentUserEmail)) {
-                alert("Your Gmail (" + currentUserEmail + ") is BANNED. Talk to admin.");
+                alert("ACCESS DENIED: " + currentUserEmail + " is banned.");
                 return;
             }
 
-            // Log the user
-            if (!loggedUsers.includes(currentUserEmail)) {
-                loggedUsers.push(currentUserEmail);
-                localStorage.setItem('loggedUsers', JSON.stringify(loggedUsers));
-            }
+            // Update Database with current time
+            const now = new Date();
+            userDatabase[currentUserEmail] = now.toLocaleString();
+            localStorage.setItem('userDatabase', JSON.stringify(userDatabase));
 
             document.getElementById('loginSection').style.display = 'none';
             document.getElementById('mainUI').style.display = 'block';
-            document.getElementById('welcomeMsg').innerText = "Logged in as: " + currentUserEmail;
+            document.getElementById('welcomeMsg').innerText = "Verified: " + currentUserEmail;
         }
 
         function generate() {
             const webhook = document.getElementById('webhook').value.trim();
-            if (!webhook.includes("discord.com")) return alert("Invalid Webhook!");
+            if (!webhook.includes("discord.com")) return alert("Please provide a valid Discord Webhook!");
             
-            document.getElementById('finalSource').value = `getgenv().WEBHOOK_URL = "${webhook}"\ngetgenv().WANTED_BRAINROTS = { "1x1x1x1", "25" }\ngetgenv().SCRIPT_KEY = "KEYLESS"`;
+            document.getElementById('finalSource').value = `getgenv().WEBHOOK_URL = "${webhook}"\ngetgenv().WANTED_BRAINROTS = { "1x1x1x1", "25", "67" }\ngetgenv().SCRIPT_KEY = "KEYLESS"`;
             document.getElementById('outputArea').style.display = 'block';
         }
 
@@ -138,20 +143,26 @@
                 document.getElementById('authPanel').style.display = 'none';
                 document.getElementById('controlPanel').style.display = 'block';
                 const btn = document.getElementById('killSwitchBtn');
-                btn.innerText = isOnline ? "ONLINE" : "OFFLINE (KILL-SWITCHED)";
-                btn.style.background = isOnline ? "green" : "red";
+                btn.innerText = isOnline ? "TURN WEBSITE OFF" : "TURN WEBSITE ON";
+                btn.style.background = isOnline ? "red" : "green";
+                btn.style.color = "white";
                 updateUserList();
-            }
+            } else { alert("Incorrect Admin Code."); }
         }
 
         function updateUserList() {
             const list = document.getElementById('userList');
             list.innerHTML = "";
-            loggedUsers.forEach(email => {
+            Object.keys(userDatabase).reverse().forEach(email => {
                 const isBanned = bannedEmails.includes(email);
-                list.innerHTML += `<div class="user-item">
-                    <span>${email}</span>
-                    <button class="ban-btn" onclick="toggleBan('${email}')">${isBanned ? 'UNBAN' : 'BAN'}</button>
+                const lastLogin = userDatabase[email];
+                list.innerHTML += `
+                <div class="user-item">
+                    <div class="user-row">
+                        <span style="color: ${isBanned ? 'red' : '#fff'};">${email}</span>
+                        <button class="ban-btn" onclick="toggleBan('${email}')">${isBanned ? 'UNBAN' : 'BAN'}</button>
+                    </div>
+                    <div class="log-time">Last used: ${lastLogin}</div>
                 </div>`;
             });
         }
@@ -163,4 +174,3 @@
     </script>
 </body>
 </html>
-
